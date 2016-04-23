@@ -576,7 +576,9 @@ class RippleDrawable extends Drawable implements Hotspotable {
             }
 
             dirtyBounds.union(drawingBounds);
-            dirtyBounds.union(super.getDirtyBounds());
+            if (!dirtyBounds.intersect(getBounds())) {
+                dirtyBounds.setEmpty();
+            }
             return dirtyBounds;
         } else {
             return getBounds();
