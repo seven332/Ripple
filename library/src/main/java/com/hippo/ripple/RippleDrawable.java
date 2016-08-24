@@ -25,13 +25,15 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.support.annotation.NonNull;
 
 import com.hippo.hotspot.Hotspotable;
 
 import java.util.Arrays;
 
-// android-6.0.1_r31
+// android-7.0.0_r1
+
 /**
  * Drawable that shows a ripple effect in response to state changes. The
  * anchoring position of the ripple for a given state may be specified by
@@ -127,7 +129,7 @@ class RippleDrawable extends Drawable implements Hotspotable {
     private Paint mRipplePaint;
 
     /** Target density of the display into which ripples are drawn. */
-    private float mDensity = 1.0f;
+    private final int mDensity;
 
     /** Whether bounds are being overridden. */
     private boolean mOverrideBounds;
@@ -137,7 +139,7 @@ class RippleDrawable extends Drawable implements Hotspotable {
     private final Drawable mContent;
 
     RippleDrawable(Context context, ColorStateList color, Drawable content) {
-        mDensity = context.getResources().getDisplayMetrics().density;
+        mDensity = context.getResources().getDisplayMetrics().densityDpi;
         mColor = color;
         mContent = content;
     }
@@ -196,19 +198,22 @@ class RippleDrawable extends Drawable implements Hotspotable {
         boolean enabled = false;
         boolean pressed = false;
         boolean focused = false;
+        boolean hovered = false;
 
-        for (int state : stateSet) {
+        for (final int state : stateSet) {
             if (state == android.R.attr.state_enabled) {
                 enabled = true;
             } else if (state == android.R.attr.state_focused) {
                 focused = true;
             } else if (state == android.R.attr.state_pressed) {
                 pressed = true;
+            } else if (state == android.R.attr.state_hovered) {
+                hovered = true;
             }
         }
 
         setRippleActive(enabled && pressed);
-        setBackgroundActive(focused || (enabled && pressed), focused);
+        setBackgroundActive(hovered || focused || (enabled && pressed), focused || hovered);
 
         return changed;
     }
@@ -340,7 +345,8 @@ class RippleDrawable extends Drawable implements Hotspotable {
      */
     private void tryBackgroundEnter(boolean focused) {
         if (mBackground == null) {
-            mBackground = new RippleBackground(this, mHotspotBounds);
+            final boolean isBounded = isBounded();
+            mBackground = new RippleBackground(this, mHotspotBounds, isBounded);
         }
 
         mBackground.setup(mMaxRadius, mDensity);
@@ -429,7 +435,7 @@ class RippleDrawable extends Drawable implements Hotspotable {
     }
 
     @Override
-    public void getHotspotBounds(Rect outRect) {
+    public void getHotspotBounds(@NonNull Rect outRect) {
         outRect.set(mHotspotBounds);
     }
 
@@ -548,6 +554,7 @@ class RippleDrawable extends Drawable implements Hotspotable {
         return mRipplePaint;
     }
 
+    @NonNull
     @Override
     public Rect getDirtyBounds() {
         if (!isBounded()) {
@@ -576,8 +583,8 @@ class RippleDrawable extends Drawable implements Hotspotable {
             }
 
             dirtyBounds.union(drawingBounds);
-            if (!dirtyBounds.intersect(getBounds())) {
-                dirtyBounds.setEmpty();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                dirtyBounds.union(super.getDirtyBounds());
             }
             return dirtyBounds;
         } else {

@@ -26,7 +26,8 @@ import android.graphics.Rect;
 import android.os.Build;
 import android.view.animation.LinearInterpolator;
 
-// android-6.0.1_r31
+// android-7.0.0_r1
+
 /**
  * Draws a ripple background.
  */
@@ -40,8 +41,13 @@ class RippleBackground extends RippleComponent {
     // Software rendering properties.
     private float mOpacity = 0;
 
-    public RippleBackground(RippleDrawable owner, Rect bounds) {
+    /** Whether this ripple is bounded. */
+    private final boolean mIsBounded;
+
+    public RippleBackground(RippleDrawable owner, Rect bounds, boolean isBounded) {
         super(owner, bounds);
+
+        mIsBounded = isBounded;
     }
 
     public boolean isVisible() {
@@ -95,7 +101,8 @@ class RippleBackground extends RippleComponent {
         final AnimatorSet.Builder builder = set.play(exit);
 
         // Linear "fast" enter based on current opacity.
-        final int fastEnterDuration = (int) ((1 - mOpacity) * OPACITY_ENTER_DURATION_FAST);
+        final int fastEnterDuration = mIsBounded ?
+                (int) ((1 - mOpacity) * OPACITY_ENTER_DURATION_FAST) : 0;
         if (fastEnterDuration > 0) {
             final ObjectAnimator enter = ObjectAnimator.ofFloat(this, RippleBackground.OPACITY, 1);
             enter.setInterpolator(LINEAR_INTERPOLATOR);

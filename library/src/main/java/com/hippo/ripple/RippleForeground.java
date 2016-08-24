@@ -27,7 +27,8 @@ import android.graphics.Rect;
 import android.os.Build;
 import android.view.animation.LinearInterpolator;
 
-// android-6.0.1_r31
+// android-7.0.0_r1
+
 /**
  * Draws a ripple foreground.
  */
@@ -72,7 +73,7 @@ class RippleForeground extends RippleComponent {
     private float mTweenY = 0;
 
     /** Whether this ripple is bounded. */
-    private boolean mIsBounded;
+    private final boolean mIsBounded;
 
     /** Whether this ripple has finished its exit animation. */
     private boolean mHasFinishedExit;
@@ -154,7 +155,7 @@ class RippleForeground extends RippleComponent {
         }
 
         final int duration = (int)
-                (1000 * Math.sqrt(mTargetRadius / WAVE_TOUCH_DOWN_ACCELERATION * mDensity) + 0.5);
+                (1000 * Math.sqrt(mTargetRadius / WAVE_TOUCH_DOWN_ACCELERATION * mDensityScale) + 0.5);
 
         final ObjectAnimator tweenRadius = ObjectAnimator.ofFloat(this, TWEEN_RADIUS, 1);
         tweenRadius.setDuration(duration);
@@ -193,7 +194,7 @@ class RippleForeground extends RippleComponent {
     private int getRadiusExitDuration() {
         final float remainingRadius = mTargetRadius - getCurrentRadius();
         return (int) (1000 * Math.sqrt(remainingRadius / (WAVE_TOUCH_UP_ACCELERATION
-                + WAVE_TOUCH_DOWN_ACCELERATION) * mDensity) + 0.5);
+                + WAVE_TOUCH_DOWN_ACCELERATION) * mDensityScale) + 0.5);
     }
 
     private float getCurrentRadius() {

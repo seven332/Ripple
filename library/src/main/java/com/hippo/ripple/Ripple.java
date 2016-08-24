@@ -25,57 +25,89 @@ import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.View;
 
 import com.hippo.hotspot.Hotspot;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public final class Ripple {
     private Ripple() {}
 
+    private static final String LOG_TAG = Ripple.class.getSimpleName();
+
     private static final int RIPPLE_MATERIAL_DARK = 0x4dffffff;
     private static final int RIPPLE_MATERIAL_LIGHT = 0x1f000000;
 
-    private static Method sSetTargetDensityMethod;
+    private static final Method sSetTargetDensityMethod;
+    private static final Field sDensityField;
 
     static {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Class<?> clazz = android.graphics.drawable.RippleDrawable.class;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                && Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
+            final Class<?> clazz = android.graphics.drawable.RippleDrawable.class;
+            Method method;
             try {
-                sSetTargetDensityMethod = clazz.getDeclaredMethod("setTargetDensity", DisplayMetrics.class);
-                sSetTargetDensityMethod.setAccessible(true);
+                method = clazz.getDeclaredMethod("setTargetDensity", DisplayMetrics.class);
+                method.setAccessible(true);
             } catch (NoSuchMethodException e) {
-                e.printStackTrace();
+                Log.e(LOG_TAG, "Can't get setTargetDensity method in RippleDrawable class", e);
+                method = null;
             }
+            sSetTargetDensityMethod = method;
+        } else {
+            sSetTargetDensityMethod = null;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            final Class<?> clazz = android.graphics.drawable.RippleDrawable.class;
+            Field field;
+            try {
+                field = clazz.getDeclaredField("mDensity");
+                field.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+                Log.e(LOG_TAG, "Can't get mDensity field in RippleDrawable class", e);
+                field = null;
+            }
+            sDensityField = field;
+        } else {
+            sDensityField = null;
         }
     }
 
     @SuppressWarnings("TryWithIdenticalCatches")
     private static void applyDensity(Context context, android.graphics.drawable.RippleDrawable rippleDrawable) {
-        if (sSetTargetDensityMethod == null) {
-            return;
+        if (sSetTargetDensityMethod != null) {
+            final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+            try {
+                sSetTargetDensityMethod.invoke(rippleDrawable, displayMetrics);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
         }
 
-        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
-        try {
-            sSetTargetDensityMethod.invoke(rippleDrawable, displayMetrics);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
+        if (sDensityField != null) {
+            try {
+                sDensityField.setInt(rippleDrawable, context.getResources().getDisplayMetrics().densityDpi);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     public static void addRipple(@NonNull View c, boolean dark) {
-        ColorStateList color = ColorStateList.valueOf(
+        final ColorStateList color = ColorStateList.valueOf(
                 dark ? RIPPLE_MATERIAL_DARK : RIPPLE_MATERIAL_LIGHT);
         addRipple(c, color);
     }
 
     public static void addRipple(@NonNull View v, @NonNull ColorStateList color) {
-        Drawable bg = v.getBackground();
+        final Drawable bg = v.getBackground();
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             if (bg instanceof RippleDrawable) {
                 return;
@@ -92,11 +124,11 @@ public final class Ripple {
     public static void addRipple(@NonNull View v, @NonNull ColorStateList color,
             @Nullable Drawable content) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-            RippleDrawable rippleDrawable = new RippleDrawable(v.getContext(), color, content);
+            final RippleDrawable rippleDrawable = new RippleDrawable(v.getContext(), color, content);
             Hotspot.addHotspotable(v, rippleDrawable);
             v.setBackgroundDrawable(rippleDrawable);
         } else {
-            android.graphics.drawable.RippleDrawable rippleDrawable =
+            final android.graphics.drawable.RippleDrawable rippleDrawable =
                     new android.graphics.drawable.RippleDrawable(color, content, new ColorDrawable(Color.BLACK));
             applyDensity(v.getContext(), rippleDrawable);
             v.setBackground(rippleDrawable);
@@ -114,7 +146,7 @@ public final class Ripple {
 
     public static Drawable generateRippleDrawable(@NonNull Context context,
             boolean dark, @Nullable Drawable content) {
-        ColorStateList color = ColorStateList.valueOf(
+        final ColorStateList color = ColorStateList.valueOf(
                 dark ? RIPPLE_MATERIAL_DARK : RIPPLE_MATERIAL_LIGHT);
         return generateRippleDrawable(context, color, content);
     }
@@ -124,7 +156,7 @@ public final class Ripple {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             return new RippleDrawable(context, color, content);
         } else {
-            android.graphics.drawable.RippleDrawable rippleDrawable =
+            final android.graphics.drawable.RippleDrawable rippleDrawable =
                     new android.graphics.drawable.RippleDrawable(color, content, new ColorDrawable(Color.BLACK));
             applyDensity(context, rippleDrawable);
             return rippleDrawable;

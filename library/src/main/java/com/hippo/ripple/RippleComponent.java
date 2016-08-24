@@ -20,8 +20,10 @@ import android.animation.Animator;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.util.DisplayMetrics;
 
-// android-6.0.1_r31
+// android-7.0.0_r1
+
 /**
  * Abstract class that handles hardware/software hand-off and lifecycle for
  * animated ripple foreground and background components.
@@ -41,7 +43,7 @@ abstract class RippleComponent {
     protected float mTargetRadius;
 
     /** Screen density used to adjust pixel-based constants. */
-    protected float mDensity;
+    protected float mDensityScale;
 
     public RippleComponent(RippleDrawable owner, Rect bounds) {
         mOwner = owner;
@@ -55,7 +57,7 @@ abstract class RippleComponent {
         }
     }
 
-    public final void setup(float maxRadius, float density) {
+    public final void setup(float maxRadius, int densityDpi) {
         if (maxRadius >= 0) {
             mHasMaxRadius = true;
             mTargetRadius = maxRadius;
@@ -63,7 +65,7 @@ abstract class RippleComponent {
             mTargetRadius = getTargetRadius(mBounds);
         }
 
-        mDensity = density;
+        mDensityScale = (float) densityDpi / (float) DisplayMetrics.DENSITY_DEFAULT;
 
         onTargetRadiusChanged(mTargetRadius);
     }
